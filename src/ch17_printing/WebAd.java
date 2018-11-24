@@ -12,6 +12,26 @@ public class WebAd extends FoodItem {
      */
     @Override
     public BigDecimal getPrice() {
+        BigDecimal calcOne = new BigDecimal(1);
+        BigDecimal divideBy100 = new BigDecimal(100);
+
+        BigDecimal unitPrice = new BigDecimal(Math.ceil(Math.random()*100));
+
+        BigDecimal discountRate = new BigDecimal(Math.ceil(Math.random()*50));
+        BigDecimal discountRateDivide = discountRate.divide(divideBy100);
+        BigDecimal discountRateCalc = calcOne.subtract(discountRateDivide); // 1-0.25=0.75
+
+        BigDecimal taxRate = new BigDecimal(8.00);
+        BigDecimal taxRateDivide = taxRate.divide(divideBy100); //0.08
+        BigDecimal taxRateCalc = taxRateDivide.add(calcOne); // *1.08
+
+
+        BigDecimal adjustedPrice = new BigDecimal(1);
+
+        adjustedPrice= adjustedPrice.multiply(unitPrice);
+        adjustedPrice= adjustedPrice.multiply(discountRateCalc);
+        adjustedPrice= adjustedPrice.multiply(taxRateCalc);
+
 
         // base price
         //double p = (3.0*(size+1) + 3.0*(crust+1));
@@ -34,7 +54,7 @@ public class WebAd extends FoodItem {
             case 2: n$ = "Chocolate Pirate Bar"; break;
             default: n$ = "Error parsing type!";
         }
-//111
+
         return n$;
     }
 
