@@ -10,39 +10,38 @@ public class WebAd extends FoodItem {
      * calculates the price based on the pizza's attributes
      * @return BigDecimal
      */
+
+    String specialRequest = "Item Special Request";
+
+    BigDecimal calcOne = new BigDecimal(1);
+    BigDecimal divideBy100 = new BigDecimal(100);
+
+    BigDecimal unitPrice = new BigDecimal(Math.ceil(Math.random()*100));  //25
+
+    BigDecimal discountRate = new BigDecimal(Math.ceil(Math.random()*50)); //23
+    BigDecimal discountRateDivide = discountRate.divide(divideBy100);
+    BigDecimal discountRateCalc = calcOne.subtract(discountRateDivide); // 1-0.23=0.77
+
+    BigDecimal taxRate = new BigDecimal(8.00);  //8.00%
+    BigDecimal taxRateDivide = taxRate.divide(divideBy100); //0.08
+    BigDecimal taxRateCalc = taxRateDivide.add(calcOne); // *1.08
+
+
+    BigDecimal adjustedPrice = new BigDecimal(1);
+
+
+    WebAd(){
+        price = getPrice();
+    }
     @Override
     public BigDecimal getPrice() {
-        BigDecimal calcOne = new BigDecimal(1);
-        BigDecimal divideBy100 = new BigDecimal(100);
-
-        BigDecimal unitPrice = new BigDecimal(Math.ceil(Math.random()*100));
-
-        BigDecimal discountRate = new BigDecimal(Math.ceil(Math.random()*50));
-        BigDecimal discountRateDivide = discountRate.divide(divideBy100);
-        BigDecimal discountRateCalc = calcOne.subtract(discountRateDivide); // 1-0.25=0.75
-
-        BigDecimal taxRate = new BigDecimal(8.00);
-        BigDecimal taxRateDivide = taxRate.divide(divideBy100); //0.08
-        BigDecimal taxRateCalc = taxRateDivide.add(calcOne); // *1.08
 
 
-        BigDecimal adjustedPrice = new BigDecimal(1);
+        adjustedPrice = adjustedPrice.multiply(unitPrice);
+        adjustedPrice = adjustedPrice.multiply(discountRateCalc);
+        adjustedPrice = adjustedPrice.multiply(taxRateCalc);  //final price 25 23 8 20.7900
 
-        adjustedPrice= adjustedPrice.multiply(unitPrice);
-        adjustedPrice= adjustedPrice.multiply(discountRateCalc);
-        adjustedPrice= adjustedPrice.multiply(taxRateCalc);
-
-
-        // base price
-        //double p = (3.0*(size+1) + 3.0*(crust+1));
-        BigDecimal p = new BigDecimal("3");
-        p = p.multiply(new BigDecimal(new Long(size+2L).toString()));
-
-
-        p = p.multiply(new BigDecimal(quantity));
-        p = p.setScale(2, RoundingMode.HALF_EVEN);
-
-        return p;
+        return adjustedPrice;
 
     }
 
@@ -80,14 +79,14 @@ public class WebAd extends FoodItem {
     @Override
     public String[] getRow() {
         String rq$ = "";
-        if (specialRequest.length() > 0 && !specialRequest.equals("Item Special Request")) rq$ = "See Request";
-        String[] row = {""+quantity,
-                getSizeAsString(),
-                getTypeAsString(),
-                "",
-                "",
-                nf.format(price),
-                rq$};
+
+        String[] row = {"$"+unitPrice,
+                ""+discountRate+"%",
+                ""+taxRate+"%",
+                ""+adjustedPrice,
+                ""+adjustedPrice,
+                ""+adjustedPrice,
+                ""+adjustedPrice};
         return row;
     }
 

@@ -1,18 +1,9 @@
 package ch17_printing;
 
 
-import com.sun.xml.internal.bind.v2.TODO;
-
 import java.applet.Applet;
 import java.applet.AudioClip;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.GridLayout;
-import java.awt.Image;
-import java.awt.Toolkit;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -24,6 +15,7 @@ import java.awt.event.MouseListener;
 import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -55,20 +47,20 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 /**
- * PizzeriaPOS8
- * 
- * @author john_carlson@baylor.edu
- * 
- * Upgrade to POS7 adding a printable receipt
- * 
- *
+ * @author leizheng 11-25-2018
  */
 @SuppressWarnings("serial")
-public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectionListener, KeyListener, ItemListener, MouseListener {
+public class webStore extends JFrame implements ActionListener, ListSelectionListener, KeyListener, ItemListener, MouseListener {
 
 	// attributes
-	BigDecimal totalPrice; 
-	
+	BigDecimal totalPrice;
+
+	//TODO Statics
+	BigDecimal lowPrice;
+	BigDecimal highPrice;
+	BigDecimal avgPrice;
+
+
 	NumberFormat nf = NumberFormat.getCurrencyInstance(Locale.US);
 	DecimalFormat df = new DecimalFormat("####.00");
 
@@ -88,13 +80,18 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 	ImageIcon captainJackParrotIMGICON = new ImageIcon(captainJackParrotIMG.getScaledInstance(60, 80, Image.SCALE_SMOOTH));
 
 	// TODO
-	JButton addWebAdBtn = new JButton("Add WebAdv");
+	JButton addWebAdBtn = new JButton("Add WebAd");
 	JButton addBevBtn = new JButton("addBevBtn");
 	JButton addDessertBtn = new JButton("addDessertBtn");
 
 	// east region:
 	JLabel detailsTitleAreaLbl = new JLabel("  Order Total  ");
 	JLabel totalPriceLbl = new JLabel(" $0.00 ");
+
+	JLabel lowPriceLabel = new JLabel("0.00");
+    JLabel highPriceLabel = new JLabel("0.00");
+    JLabel avgPriceLabel = new JLabel("0.00");
+
 	JLabel itemDetailsTitleLbl = new JLabel("Item Special Request:");
 	JTextField itemSpecialRequestTF = new JTextField();
 
@@ -105,18 +102,26 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 	ButtonGroup radioButtons = new ButtonGroup();
 	JRadioButton dineInRB, takeAwayRB, deliverRB;
 	JTextArea addressTA = new JTextArea();
-	JCheckBox extraSauceCB = new JCheckBox("Extra parrot sauce", false);
-	JCheckBox kidsBookCB = new JCheckBox("Little matey\'s coloring book", false);
-	JCheckBox orderInstructionsCB = new JCheckBox("Special instructions:", false);
-	JTextArea orderInstructionsTA = new JTextArea("Order Special Instructions");
+	JCheckBox extraSauceCB = new JCheckBox("Small jokes", false);
+	JCheckBox kidsBookCB = new JCheckBox("Final fantasy", false);
+	JCheckBox orderInstructionsCB = new JCheckBox("Special deals!:", false);
+	JTextArea orderInstructionsTA = new JTextArea("Order Special deals");
 
 	// south region:
 	JButton removeItemBtn = new JButton("Remove Selected Item");
 	JButton cancelOrderBtn = new JButton("Cancel Order"); // removes all data
 	JButton placeOrderBtn = new JButton("Place Order");
 
+	/*
+	@LEI ZHENG
+	 */
+	JButton showStatsBtn = new JButton("Show Stats");
+    JButton viewSelectAdBtn = new JButton("View Selected Ad");
+    JButton printSelectBtn = new JButton("Print Selected Ad");
+
+
 	// center region:
-	DefaultTableModel data = new DefaultTableModel(12,4); // rows, columns
+	DefaultTableModel data = new DefaultTableModel(12,5); // rows, columns
 	{ // initializer block:
 		Object[] columnNames = {"WebAd Price", "Discount", "Tax", "Total"};
 		data.setColumnIdentifiers(columnNames);
@@ -132,19 +137,19 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 
 
 	/** setup app characteristics
-	 * 
+	 *
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		PizzeriaPOS8 app = new PizzeriaPOS8();
+		webStore app = new webStore();
 		app.setSize(1080, 800);
-		app.setTitle("POS Version 8");
+		app.setTitle("My WebAd Store");
 		app.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		app.setVisible(true);
 		app.setFocus(); // must set focus after the gui is visible
 	}
 
-	PizzeriaPOS8() {
+	webStore() {
 
 		// --------------------------------------------------------- setup
 		URL arghURL, yohoURL, ahoyURL, onTheWayURL;
@@ -183,14 +188,14 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 		jsp.setBorder(BorderFactory.createTitledBorder("Order Items"));
 		jsp.setBackground(new Color(238, 238, 238)); // match default JPanel background color
 		p.add(jsp, BorderLayout.CENTER);
-				
+
 		// adjust table column widths:
 		orderTable.getColumnModel().getColumn(0).setPreferredWidth(24);
 		orderTable.getColumnModel().getColumn(1).setPreferredWidth(130);
 		orderTable.getColumnModel().getColumn(2).setPreferredWidth(130);
 		orderTable.getColumnModel().getColumn(3).setPreferredWidth(36);
 		orderTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
-		
+
 		// adjust table column alignment for #toppings (center) and price (right):
 		// there are at least 2 ways
 		// 1. create a reusable class:
@@ -200,14 +205,14 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 			}
 		}
 		orderTable.getColumnModel().getColumn(3).setCellRenderer(new RightTableCellRenderer());
-		
+
 		// 2. just set the column using an initializer block in the default cell renderer:
 		orderTable.getColumnModel().getColumn(2).setCellRenderer(new DefaultTableCellRenderer() {
 			{ // initializer block:
-				setHorizontalAlignment(JLabel.CENTER);				
+				setHorizontalAlignment(JLabel.CENTER);
 			}
 		});
-		
+
 
 		// ------------------------------ WEST:
 		// load images for the buttons:
@@ -218,14 +223,14 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 		Image temp3 = Toolkit.getDefaultToolkit().getImage("parrot-pop.png");
 		ImageIcon dessertImage = new ImageIcon(temp3.getScaledInstance(60, 110, Image.SCALE_SMOOTH));
 
-		addWebAdBtn.setIcon(pizzaImg);
+		//addWebAdBtn.setIcon(pizzaImg);
 		addBevBtn.setIcon(bevImg);
 		addDessertBtn.setIcon(dessertImage);
 
 		JPanel westButtons = new JPanel();
 		westButtons.add(addWebAdBtn);
-		westButtons.add(addBevBtn);
-		westButtons.add(addDessertBtn);
+		//westButtons.add(addBevBtn);
+		//westButtons.add(addDessertBtn);
 		westButtons.setLayout(new GridLayout(westButtons.getComponentCount(),1));
 		westButtons.setBorder(BorderFactory.createTitledBorder("Add Items"));
 
@@ -249,9 +254,17 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 		southButtons.setLayout(new FlowLayout(FlowLayout.LEFT));
 
 		southButtons.add(setSpecialRequest);
-		southButtons.add(chgQuantityBtn);
-		southButtons.add(chgSizeBtn);
+		//southButtons.add(chgQuantityBtn);
+		//southButtons.add(chgSizeBtn);
 		southButtons.add(removeItemBtn);
+
+
+
+		southButtons.add(showStatsBtn);
+		southButtons.add(viewSelectAdBtn);
+		southButtons.add(printSelectBtn);
+
+
 
 		JPanel southDetails = new JPanel();
 		southDetails.setLayout(new FlowLayout(FlowLayout.LEFT));
@@ -284,7 +297,7 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 
 
 		// radio buttons:
-		dineInRB = new JRadioButton("Dine in", true);
+		dineInRB = new JRadioButton("Pick up", true);
 		dineInRB.setFont(smallF);
 
 		takeAwayRB = new JRadioButton("Take away", false);
@@ -339,8 +352,8 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 		eastPanel.add(addressTA);
 		eastPanel.add(checkPanel);
 		eastPanel.add(orderInstructionsTA);
-		eastPanel.add(placeOrderBtn);
-		eastPanel.add(cancelOrderBtn);
+		//eastPanel.add(placeOrderBtn);
+		//eastPanel.add(cancelOrderBtn);
 
 
 		p.add(eastPanel, BorderLayout.EAST);
@@ -358,7 +371,7 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 
 	/** utility methods to attach default listeners to all
 	 *  panel components (recursive)
-	 *  
+	 *
 	 * @param p
 	 */
 	void registerListeners(JComponent p) {
@@ -366,7 +379,7 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 			Object o = p.getComponent(j);
 			if (o.getClass() == JButton.class) {
 				((JButton) o).addActionListener(this);
-				((JButton) o).addKeyListener(this);		
+				((JButton) o).addKeyListener(this);
 
 			} else if (o.getClass() == JTextArea.class) {
 				((JTextArea) o).addKeyListener(this);
@@ -386,7 +399,7 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 			} else if (o.getClass() == JTable.class) {
 				((JTable) o).addKeyListener(this);
 				((JTable) o).getSelectionModel().addListSelectionListener(this);
-				
+
 			} else if (o.getClass() == JPanel.class || o.getClass() == JScrollPane.class || o.getClass() == JViewport.class) {
 				registerListeners((JComponent) o);
 
@@ -402,9 +415,9 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 		addWebAdBtn.requestFocus();
 	}
 
-	/** 
+	/**
 	 * A convenience method to prompt for a new size and update the FoodItem object:
-	 * 
+	 *
 	 * @param tmp
 	 * @param list
 	 * @param defaultSize
@@ -413,7 +426,7 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 	FoodItem getNewSize(FoodItem tmp, String[] list, String defaultSize) {
 
 		// show dialog with sizeList for this Beverage object:
-		String ns$ = (String) JOptionPane.showInputDialog(null, "Select new size:", "Change Size", 
+		String ns$ = (String) JOptionPane.showInputDialog(null, "Select new size:", "Change Size",
 				JOptionPane.QUESTION_MESSAGE, tmp.productImage, list, defaultSize);
 
 		// have to get index associate with the selected size string:
@@ -465,12 +478,73 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 		}
 	}
 
+    /**
+     * get Low Price
+     * @leizheng 11/24/2018
+     */
+
+    void getLowPrice(){
+        BigDecimal min = new BigDecimal(Double.MAX_VALUE);
+
+        // scans through the order to find the lowest price
+        for (int i = 0; i < order.size(); i++) {
+            Object o = order.get(i);
+            if (o.getClass() == WebAd.class) {
+                WebAd p = (WebAd) o;
+
+                if (p.price.compareTo(min) == -1) {
+                    min = p.price;
+
+                }
+
+                //order.set(i, p); // TODO: need on windows??
+
+            }
+        }
+
+        lowPrice = min;
+        //System.out.println(LowPrice);
+
+    }
+
+    /**
+     * get High Price
+     * @leizheng 11/24/2018
+     */
+
+    void getHighPrice(){
+        BigDecimal max = new BigDecimal(Double.MIN_VALUE);
+
+        // scans through the order to find the lowest price
+        for (int i = 0; i < order.size(); i++) {
+            Object o = order.get(i);
+            if (o.getClass() == WebAd.class) {
+                WebAd p = (WebAd) o;
+
+                if (p.price.compareTo(max) == 1) {
+                    max = p.price;
+
+                }
+
+                //order.set(i, p); // TODO: need on windows??
+
+            }
+        }
+
+        highPrice = max;
+        //System.out.println(HighPrice);
+
+    }
+
 	/**
 	 * processed the orders in the list and recalculates totalPrice
 	 */
 	public void updateOrder() {
 
-		updateLowPrice();
+		//updateLowPrice();
+
+        getLowPrice();
+        getHighPrice();
 
 		// clear item details
 		itemSpecialRequestTF.setText("");
@@ -481,11 +555,33 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 
 		for (int i = 0; i < order.size(); i++) {
 			data.addRow(order.get(i).getRow()); //(order.get(i));
+            //TODO Order Total
 			totalPrice = totalPrice.add(new BigDecimal(df.format(order.get(i).price)));
 		}
 
 		totalPrice = totalPrice.setScale(2, RoundingMode.HALF_EVEN);
 		totalPriceLbl.setText(nf.format(totalPrice));
+
+		BigDecimal numberOfItem = new BigDecimal(df.format(order.size()));
+        // System.out.println(numberOfItem);
+
+        BigDecimal zero = new BigDecimal("0.00");
+
+        MathContext mc = new MathContext(2, RoundingMode.HALF_DOWN);
+        /**
+         * @author leizheng
+         */
+        // avoid zero division error
+        if (numberOfItem.equals(zero)){
+            avgPrice = zero;
+
+        }else {
+            avgPrice = totalPrice.divide(numberOfItem,2, BigDecimal.ROUND_HALF_UP);
+        }
+
+		avgPriceLabel.setText(nf.format(avgPrice));
+        lowPriceLabel.setText(nf.format(lowPrice));
+        highPriceLabel.setText(nf.format(highPrice));
 
 	}
 
@@ -524,11 +620,11 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 
             // TODO
 			WebAd ad = new WebAd();
-			webAdorder.add(ad);
+			order.add(ad);
 
 
-			food = new Pizza();
-			order.add(food);
+			//food = new Pizza();
+			//order.add(food);
 
 		} else if (e.getSource() == addBevBtn) {
 
@@ -540,7 +636,153 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 			food = new Dessert();
 			order.add(food);
 
-		} else if (e.getSource() == removeItemBtn) {
+		} else if (e.getSource() == showStatsBtn) {
+            if (order.size()>0){
+                // @leizheng
+                // create window for receipt panel and action buttons:
+                JLabel label1 = new JLabel("Low Price = $" + lowPrice);
+                JLabel label2 = new JLabel("High Price = $" + highPrice);
+                JLabel label3 = new JLabel("Avg Price = $" + avgPrice);
+
+                JFrame jf = new JFrame();
+
+                jf.setSize(250, 150);
+                jf.setLocationRelativeTo(this);
+                jf.setTitle("Summary Statistics");
+
+                jf.setVisible(true);
+
+                jf.add(label1,BorderLayout.NORTH);
+                jf.add(label2,BorderLayout.CENTER);
+                jf.add(label3,BorderLayout.SOUTH);
+            }else{
+                argh.play();
+                JOptionPane.showMessageDialog(this, "Add WebAd prior to see Summary Statistics", "Attention", 0);
+            }
+
+
+        } else if (e.getSource() == viewSelectAdBtn) {
+
+            int i = orderTable.getSelectedRow();
+
+            if (i > -1) {
+
+                JLabel label1 = new JLabel("PIRATE SHIPS & BATH WATER");
+                JLabel label2 = new JLabel("Ad Price = $" + order.get(i).price);
+                JLabel label3 = new JLabel("Smells Like Teen Spirit!!");
+
+                JFrame frame = new JFrame("My Web Ad");
+                Container contentPane = frame.getContentPane();
+                contentPane.setBackground(Color.CYAN); // color
+
+                JPanel panel = new JPanel();
+                panel.setBackground(Color.yellow);
+                JButton printBtn = new JButton("Print");
+                panel.add(printBtn);
+
+                contentPane.add(panel, BorderLayout.SOUTH);
+                frame.setSize(320, 320);
+                frame.setVisible(true);
+
+                frame.add(label2,BorderLayout.CENTER);
+                frame.add(label3,BorderLayout.NORTH);
+
+                ReceiptPanel p = new ReceiptPanel(this.totalPrice, this.order);
+
+                printBtn.addActionListener(action -> {
+                    // submit print job:
+                    PrinterJob job = PrinterJob.getPrinterJob();
+                    job.setPrintable(p);
+                    if (job.printDialog()) {
+                        try {
+                            job.print();
+                        } catch(PrinterException x_x) {
+                            System.out.println("Error printing: " + x_x);
+                        }
+                    }
+                });
+
+                /*
+                WebAdGenerator2 app = new WebAdGenerator2();
+                app.setSize(1024, 768);
+                app.setDefaultCloseOperation(EXIT_ON_CLOSE);
+                app.setTitle("WebAdGenerator2");
+                app.setVisible(true);
+                */
+
+
+                /*
+                JFrame jf = new JFrame();
+                jf.setSize(320,320);
+                JLabel label1 = new JLabel("PIRATE SHIPS & BATH WATER");
+                JLabel label2 = new JLabel("Ad Price = $" + order.get(i).price);
+                JLabel label3 = new JLabel("Smells Like Teen Spirit!!");
+
+                jf.setTitle("WebAd Purchase");
+
+                jf.setVisible(true);
+
+                jf.add(label1,BorderLayout.NORTH);
+                jf.add(label2,BorderLayout.CENTER);
+                jf.add(label3,BorderLayout.SOUTH);
+                */
+
+
+            } else {
+                argh.play();
+                JOptionPane.showMessageDialog(this, "Please select an item to view!", "Attention", 0);
+            }
+
+
+        } else if (e.getSource() == printSelectBtn) {
+            int i = orderTable.getSelectedRow();
+
+            if (i > -1) {
+
+                JLabel label1 = new JLabel("PIRATE SHIPS & BATH WATER");
+                JLabel label2 = new JLabel("Ad Price = $" + order.get(i).price);
+                JLabel label3 = new JLabel("Smells Like Teen Spirit!!");
+
+                JFrame frame = new JFrame("My Web Ad");
+                Container contentPane = frame.getContentPane();
+                contentPane.setBackground(Color.CYAN); // color
+
+                JPanel panel = new JPanel();
+                panel.setBackground(Color.yellow);
+                JButton printBtn = new JButton("Print");
+                panel.add(printBtn);
+
+                contentPane.add(panel, BorderLayout.SOUTH);
+                frame.setSize(320, 320);
+                frame.setVisible(true);
+
+                frame.add(label1,BorderLayout.NORTH);
+                frame.add(label2,BorderLayout.CENTER);
+
+                ReceiptPanel p = new ReceiptPanel(this.totalPrice, this.order);
+
+                printBtn.addActionListener(action -> {
+                    // submit print job:
+                    PrinterJob job = PrinterJob.getPrinterJob();
+                    job.setPrintable(p);
+                    if (job.printDialog()) {
+                        try {
+                            job.print();
+                        } catch(PrinterException x_x) {
+                            System.out.println("Error printing: " + x_x);
+                        }
+                    }
+                });
+
+
+            } else {
+                argh.play();
+                JOptionPane.showMessageDialog(this, "Please select an item to print!", "Attention", 0);
+            }
+
+
+
+        } else if (e.getSource() == removeItemBtn) {
 
 			if (removeItemBtn.getText().equals("Remove ALL Items")) {
 				//clearOrder();
@@ -558,7 +800,31 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 				}
 			}
 
-		} else if (e.getSource() == placeOrderBtn) {
+		}else if (e.getSource() == setSpecialRequest) {
+
+            int i = orderTable.getSelectedRow();
+
+            if (i > -1) {
+
+                // get current request, place in tf, and enable for editing
+                FoodItem food = order.get(i);
+                String request$ = food.specialRequest;
+
+                itemSpecialRequestTF.setText(request$);
+                itemSpecialRequestTF.setEnabled(true);
+                if (request$.equals("--")) {
+                    itemSpecialRequestTF.setText("");
+                }
+
+                itemSpecialRequestTF.requestFocusInWindow();
+                // when the user hits "enter", the key listener will get the text they entered.
+
+            } else {
+                argh.play();
+                JOptionPane.showMessageDialog(this, "Please select an item to attach this request to!", "Attention", 0);
+            }
+
+        } else if (e.getSource() == placeOrderBtn) {
 
 			if (order.size() > 0) {
 				
@@ -756,6 +1022,9 @@ public class PizzeriaPOS8 extends JFrame implements ActionListener, ListSelectio
 		titleLBL.setIcon(titleIMGICON);
 
 	}
+
+
+
 }
 
 
